@@ -19,8 +19,8 @@ app.use(cors({
 app.use(uploadMiddleware);
 
 app.post("/", async (req: Request, res: Response) => {
-  const { bpm, audioDuration }: {
-    bpm: string,
+  const { timePerBeat, audioDuration }: {
+    timePerBeat: string,
     audioDuration: string
   } = req.body;
 
@@ -48,15 +48,15 @@ app.post("/", async (req: Request, res: Response) => {
     outputType: "png"
   });
 
-  const timePerBeat = 60 / +bpm * 2;
-  const duration = timePerBeat / frames.length;
+  const duration = +timePerBeat / frames.length;
 
   console.log(`${frames.length} frames extracted from gif`);
 
   let fileListText = "";
   const framePaths: string[] = [];
   for (let i = 0; i < frames.length; i++) {
-    const img = frames[i].getImage();
+    const img = frames[i]?.getImage();
+    if (!img) continue;
     const framePath = path.join("/tmp", `frame-${i}.png`);
     await Bun.write(framePath, await streamToBuffer(img));
 
@@ -64,7 +64,7 @@ app.post("/", async (req: Request, res: Response) => {
     framePaths.push(framePath);
   }
 
-  const beats = Math.ceil(+audioDuration / timePerBeat);
+  const beats = Math.ceil(+audioDuration / +timePerBeat);
   for (let beat = 0; beat < beats; beat++) {
     for (const frame of framePaths) {
       fileListText += `file ${frame}\n`;
